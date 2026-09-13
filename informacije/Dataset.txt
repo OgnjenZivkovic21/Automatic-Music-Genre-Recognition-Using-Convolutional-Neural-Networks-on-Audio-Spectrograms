@@ -1,0 +1,10 @@
+Dataset:
+
+Za osnovu biram GTZAN — 1000 isečaka po 30 sekundi, 10 žanrova, apsolutni standard u ovoj oblasti otkad postoji MIR istraživanje.
+ Prednost mu je što je mali (lako se trenira i na skromnijem hardveru) i što praktično svaki rad iz ove oblasti koristi baš njega,
+ pa ćeš lako porediti svoje rezultate sa literaturom. Mana mu je što ima poznate duplikate i par pogrešno označenih pesama — to vredi
+ pomenuti u radu kao poznato ograničenje (pokazuje da si svestan problema, a ne da si ga prevideo).
+
+Ako budeš imao vremena i želje da rad bude ambiciozniji, kao dodatak (ne zamenu) koristi FMA-small (Free Music Archive, ~8000 pesama, 8 žanrova)
+da proveriš da li model generalizuje i van GTZAN-a — to je lep "bonus" eksperiment za poglavlje diskusije.
+

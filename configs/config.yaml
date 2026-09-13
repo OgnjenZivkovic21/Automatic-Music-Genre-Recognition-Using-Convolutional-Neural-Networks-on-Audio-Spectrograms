@@ -1,0 +1,32 @@
+seed: 42
+
+data:
+  raw_dir: "data/raw/gtzan/genres_original"
+  processed_dir: "data/processed"
+  sample_rate: 22050
+  clip_duration: 30
+  segment_duration: 3
+  n_mels: 128
+  n_mfcc: 20
+  genres:
+    - blues
+    - classical
+    - country
+    - disco
+    - hiphop
+    - jazz
+    - metal
+    - pop
+    - reggae
+    - rock
+
+split:
+  test_size: 0.15
+  val_size: 0.15
+  split_by: "track"
+
+train:
+  batch_size: 32
+  epochs: 40
+  lr: 0.001
+  device: "cuda"

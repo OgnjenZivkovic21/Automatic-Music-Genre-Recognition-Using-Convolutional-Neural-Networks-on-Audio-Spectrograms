@@ -1,0 +1,3 @@
+Prepoznavanje žanra muzike primenom mašinskog učenja: poređenje klasičnih i dubokih pristupa
+
+Automatsko prepoznavanje žanra muzike korišćenjem konvolucionih neuronskih mreža nad audio spektrogramima

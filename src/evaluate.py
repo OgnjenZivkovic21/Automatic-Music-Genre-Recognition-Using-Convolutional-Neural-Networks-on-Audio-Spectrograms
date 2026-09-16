@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 
-from config import load_config
+from config import load_config, MODELS_SAVED_DIR
 from datasets import GTZANSpectrogramDataset
 from models.cnn import GenreCNN
 
@@ -23,7 +23,7 @@ def run():
     test_loader = DataLoader(test_ds, batch_size=cfg["train"]["batch_size"])
 
     model = GenreCNN(n_genres=len(genres), n_mels=cfg["data"]["n_mels"]).to(device)
-    model.load_state_dict(torch.load("../models_saved/genre_cnn.pt", map_location=device))
+    model.load_state_dict(torch.load(MODELS_SAVED_DIR / "genre_cnn_best.pt", map_location=device))
     model.eval()
 
     y_true, y_pred = [], []

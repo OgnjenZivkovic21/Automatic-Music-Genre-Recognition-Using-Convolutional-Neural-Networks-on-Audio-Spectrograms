@@ -1,9 +1,8 @@
 """Trenira CNN na mel-spektrogramima."""
-import os
 import torch
 from torch.utils.data import DataLoader
 
-from config import load_config
+from config import load_config, MODELS_SAVED_DIR
 from utils import set_seed
 from datasets import GTZANSpectrogramDataset
 from models.cnn import GenreCNN
@@ -37,6 +36,9 @@ def run():
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg["train"]["lr"])
     criterion = torch.nn.CrossEntropyLoss()
 
+    MODELS_SAVED_DIR.mkdir(parents=True, exist_ok=True)
+    best_val_acc = 0.0
+
     for epoch in range(cfg["train"]["epochs"]):
         model.train()
         total_loss = 0
@@ -58,12 +60,19 @@ def run():
                 correct += (preds == y).sum().item()
                 total += y.size(0)
 
+        val_acc = correct / total
         print(f"epoch {epoch+1}/{cfg['train']['epochs']} "
               f"train_loss={total_loss/len(train_loader):.4f} "
-              f"val_acc={correct/total:.4f}")
+              f"val_acc={val_acc:.4f}")
 
-    os.makedirs("../models_saved", exist_ok=True)
-    torch.save(model.state_dict(), "../models_saved/genre_cnn.pt")
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), MODELS_SAVED_DIR / "genre_cnn_best.pt")
+            print(f"  -> novi najbolji model sacuvan (val_acc={val_acc:.4f})")
+
+    torch.save(model.state_dict(), MODELS_SAVED_DIR / "genre_cnn_last.pt")
+    print(f"Trening zavrsen. Najbolji val_acc={best_val_acc:.4f} "
+          f"(genre_cnn_best.pt), poslednja epoha sacuvana kao genre_cnn_last.pt")
 
 
 if __name__ == "__main__":

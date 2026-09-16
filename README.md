@@ -25,24 +25,16 @@ configs/config.yaml    - svi hiperparametri i putanje na jednom mestu
 models_saved/            - sacuvani checkpoint-i (generise se)
 ```
 
-## Preuzimanje GTZAN dataset-a (radi se rucno - vidi objasnjenje u chatu)
-
-1. Preuzmi GTZAN (npr. sa Kaggle-a: "GTZAN Dataset - Music Genre Classification",
-   autor andradaolteanu) - zip fajl od ~1.2GB.
-2. Raspakuj ga tako da dobijes strukturu:
-   `data/raw/gtzan/genres_original/blues/blues.00000.wav`, ... (10 foldera, po zanru).
-3. Proveri da folder odgovara putanji iz `configs/config.yaml` (`data.raw_dir`).
-
 ## Pokretanje
 
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate        # na Windows-u: .venv\Scripts\activate
 pip install -r requirements.txt
 
 cd src
-python3 data_prep.py             # pravi train/val/test manifest CSV-ove
-python3 train_baseline.py        # SVM + RandomForest baseline
-python3 train_cnn.py             # CNN na mel-spektrogramima
-python3 evaluate.py              # evaluacija CNN-a na test skupu
+python data_prep.py             # pravi train/val/test manifest CSV-ove
+python train_baseline.py        # SVM + RandomForest baseline
+python train_cnn.py             # CNN na mel-spektrogramima
+python evaluate.py              # evaluacija CNN-a na test skupu
 ```

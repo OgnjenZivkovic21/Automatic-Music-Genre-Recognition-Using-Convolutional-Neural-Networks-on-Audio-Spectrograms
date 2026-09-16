@@ -17,7 +17,15 @@ def extract_mel_spectrogram(y, sr, n_mels=128, n_fft=2048, hop_length=512):
     )
     return librosa.power_to_db(mel, ref=np.max)
 
+"""
+Audio se seče na kratke, preklapajuće prozore (dužine n_fft=2048 uzoraka, pomerajući se za hop_length=512 uzoraka svaki put) i 
+za svaki prozor se računa koliko je energije prisutno na svakoj frekvenciji (Furijeova transformacija) — to je osnovni "spektrogram".
 
+Frekvencije se zatim mapiraju na mel skalu — ljudsko uvo ne čuje frekvencije linearno, nego logaritamski (razlika između 100Hz i 200Hz 
+je nama upadljivija nego razlika između 10000Hz i 10100Hz) — mel skala to oponaša, grupišući više frekvencije gušće. n_mels=128 znači da rezultat ima 128 takvih "traka".
+
+power_to_db pretvara sirove vrednosti energije (koje mogu biti ogromnog raspona) u decibelsku/logaritamsku skalu — mreže mnogo lakše uče na ovakvim, "sažetijim" vrednostima.
+"""
 def extract_classical_features(y, sr, n_mfcc=20):
     """Vraca fiksni vektor feature-a (mean + std nekoliko deskriptora)
     za klasicni ML baseline (SVM / RandomForest)."""
@@ -35,5 +43,5 @@ def extract_classical_features(y, sr, n_mfcc=20):
     for arr in (mfcc, chroma, spec_centroid, spec_rolloff, zcr):
         for row in np.atleast_2d(arr):
             feats.extend(stats(row))
-    feats.append(float(tempo))
+    feats.append(float(np.ravel(tempo)[0]))
     return np.array(feats, dtype=np.float32)

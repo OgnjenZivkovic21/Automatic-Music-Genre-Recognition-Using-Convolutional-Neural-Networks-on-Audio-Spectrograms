@@ -1,0 +1,40 @@
+Dnevnik rada - tehnicki deo (kod, treninzi, testiranje)
+========================================================
+Jednostavna, neopsirna evidencija sta je dodato/menjano u kodu i sta je
+testirano/pokrenuto - referenca za pisanje rada. Vodi se u chatu za
+pokretanje/testiranje/debagovanje koda.
+
+
+16.09.2026.
+-----------
+- Ispravljena greska u features.py (extract_classical_features): librosa.beat.beat_track
+  vraca tempo kao niz, float(tempo) pucao na numpy 2.x -> promenjeno u
+  float(np.ravel(tempo)[0]).
+- Pokrenut i testiran train_baseline.py (SVM + RandomForest na rucnim feature-ima):
+  SVM test accuracy 69%, RandomForest 67%. Najlakse prepoznat zanr: classical.
+  Najvise mesanja: rock/country/disco/blues medjusobno.
+- train_cnn.py izmenjen da cuva najbolji checkpoint po val_acc (genre_cnn_best.pt)
+  umesto samo poslednje epohe; dodatno cuva i genre_cnn_last.pt.
+- Ispravljen bug sa relativnim putanjama: config.py sada raw_dir/processed_dir
+  pretvara u apsolutne putanje (vezane za koren projekta), train_cnn.py i evaluate.py
+  koriste apsolutnu putanju za models_saved/. Manifest CSV-ovi ponovo generisani
+  (data_prep.py) da bi i putanje do audio fajlova unutar njih bile apsolutne.
+- Potvrdjeno: CUDA nije dostupna na ovom racunaru, trening ide na CPU. Bez
+  keshiranja spektrograma, jedna epoha CNN treninga traje ~33s (za 699 train pesama).
+- Pokrenut pun CNN trening (40 epoha, ~22 min ukupno):
+  najbolji val_acc = 64.67% (epoha 32).
+- Pokrenut evaluate.py (test skup, 150 pesama):
+  CNN test accuracy = 67% (isto kao RandomForest, ispod SVM-a od 69%).
+  Confusion matrica: classical savrseno prepoznat (F1 1.00), rock najteze (F1 0.32).
+- Napomena: val_acc kroz epohe dosta "skace" (mali validacioni skup od 150 pesama +
+  po jedan nasumican 3s isecak po pesmi svake epohe) - nije greska, ali vredi
+  pomenuti u radu kao ogranicenje/karakteristiku.
+- Verzija pushovana na GitHub.
+
+Ideje za dalje (jos ne uradjeno):
+- Sacuvati grafike (loss kriva, confusion matrica kao slika).
+- Test-time averaging u evaluate.py (vise iseczaka po pesmi umesto jednog).
+- Keshiranje feature-a/spektrograma (korisno ako budemo vise puta trenirali).
+- Data augmentacija (pitch shift, time stretch, SpecAugment).
+- FMA-small ekstenzija (bonus, za proveru generalizacije).
+- Hiperparametar eksperimenti (lr, batch_size, dublja CNN arhitektura).

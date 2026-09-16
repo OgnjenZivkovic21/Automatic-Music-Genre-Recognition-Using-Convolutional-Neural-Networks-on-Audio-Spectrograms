@@ -5,6 +5,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = PROJECT_ROOT / "configs" / "config.yaml"
 MODELS_SAVED_DIR = PROJECT_ROOT / "models_saved"
+RESULTS_DIR = PROJECT_ROOT / "results"
 
 
 def load_config(path: Path = CONFIG_PATH) -> dict:

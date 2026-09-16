@@ -1,9 +1,13 @@
 """Evaluira sacuvani CNN checkpoint na test splitu."""
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import seaborn as sns
 import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 
-from config import load_config, MODELS_SAVED_DIR
+from config import load_config, MODELS_SAVED_DIR, RESULTS_DIR
 from datasets import GTZANSpectrogramDataset
 from models.cnn import GenreCNN
 
@@ -19,6 +23,7 @@ def run():
         sample_rate=cfg["data"]["sample_rate"],
         segment_duration=cfg["data"]["segment_duration"],
         n_mels=cfg["data"]["n_mels"],
+        deterministic=True,
     )
     test_loader = DataLoader(test_ds, batch_size=cfg["train"]["batch_size"])
 
@@ -35,7 +40,21 @@ def run():
             y_pred.extend(preds.tolist())
 
     print(classification_report(y_true, y_pred, target_names=genres))
-    print(confusion_matrix(y_true, y_pred))
+    cm = confusion_matrix(y_true, y_pred)
+    print(cm)
+
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    plt.figure(figsize=(8, 7))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+                xticklabels=genres, yticklabels=genres)
+    plt.xlabel("Predvidjeni zanr")
+    plt.ylabel("Stvarni zanr")
+    plt.title("CNN - confusion matrica (test skup)")
+    plt.tight_layout()
+    cm_path = RESULTS_DIR / "cnn_confusion_matrix.png"
+    plt.savefig(cm_path, dpi=150)
+    plt.close()
+    print(f"Confusion matrica sacuvana: {cm_path}")
 
 
 if __name__ == "__main__":

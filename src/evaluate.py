@@ -23,7 +23,6 @@ def run():
         sample_rate=cfg["data"]["sample_rate"],
         segment_duration=cfg["data"]["segment_duration"],
         n_mels=cfg["data"]["n_mels"],
-        deterministic=True,
     )
     test_loader = DataLoader(test_ds, batch_size=cfg["train"]["batch_size"])
 

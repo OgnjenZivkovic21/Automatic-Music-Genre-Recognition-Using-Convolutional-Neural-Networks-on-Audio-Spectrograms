@@ -38,3 +38,23 @@ Ideje za dalje (jos ne uradjeno):
 - Data augmentacija (pitch shift, time stretch, SpecAugment).
 - FMA-small ekstenzija (bonus, za proveru generalizacije).
 - Hiperparametar eksperimenti (lr, batch_size, dublja CNN arhitektura).
+
+17.09.2026.
+-----------
+- Eksperiment: deterministicki (centralni) isecak za val/test umesto nasumicnog,
+  u pokusaju da se smanji "skakanje" validacione tacnosti kroz epohe.
+  REZULTAT: pogorsanje (test accuracy palo sa 67% na 58.7%, jazz F1 drasticno pao) -
+  IZMENA VRACENA (revertovano na staro, nasumican isecak za sve, kao pre).
+  Zakljucak: nasumicnost isecka NIJE bila glavni uzrok "skakanja" val_acc.
+- Dijagnoza (posle revert-a): verovatan uzrok "skakanja" val_acc je kombinacija
+  (1) malog trening skupa za CNN od nule, (2) nasumicnog isecka KOJI SE MENJA
+  svake epohe za trening (utice na BatchNorm running statistiku), (3) fiksnog
+  lr=0.001 kroz svih 40 epoha bez opadanja - nista ne "guši" oscilacije pred kraj.
+- Dodat StepLR learning rate scheduler u train_cnn.py (na svakih 15 epoha lr se
+  prepolovi: 0.001 -> 0.0005 -> 0.00025). Testirano:
+  REZULTAT: POBOLJSANJE. Test accuracy 72.7% (109/150) - CNN sada nadmasuje
+  i SVM (69%) i RandomForest (67%). Val_acc i dalje oscilira, ali sa vecim
+  "podom" u kasnijim epohama (0.58-0.67 umesto 0.33-0.65 pre scheduler-a).
+  ZADRZAVAMO scheduler kao deo koda.
+- Grafici (results/cnn_training_curves.png, results/cnn_confusion_matrix.png)
+  azurirani sa finalnim rezultatom (scheduler ukljucen).

@@ -30,7 +30,6 @@ def run():
         sample_rate=cfg["data"]["sample_rate"],
         segment_duration=cfg["data"]["segment_duration"],
         n_mels=cfg["data"]["n_mels"],
-        deterministic=True,
     )
 
     train_loader = DataLoader(train_ds, batch_size=cfg["train"]["batch_size"], shuffle=True)
@@ -38,6 +37,9 @@ def run():
 
     model = GenreCNN(n_genres=len(genres), n_mels=cfg["data"]["n_mels"]).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg["train"]["lr"])
+    # Learning rate scheduler: na svakih 15 epoha prepolovi lr (npr. 0.001 -> 0.0005 -> 0.00025)
+    # cilj: da se trening "smiri" pred kraj umesto da lr ostane fiksan kroz svih 40 epoha
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.5)
     criterion = torch.nn.CrossEntropyLoss()
 
     MODELS_SAVED_DIR.mkdir(parents=True, exist_ok=True)
@@ -70,14 +72,18 @@ def run():
         train_loss = total_loss / len(train_loader)
         train_losses.append(train_loss)
         val_accs.append(val_acc)
+        current_lr = optimizer.param_groups[0]["lr"]
         print(f"epoch {epoch+1}/{cfg['train']['epochs']} "
               f"train_loss={train_loss:.4f} "
-              f"val_acc={val_acc:.4f}")
+              f"val_acc={val_acc:.4f} "
+              f"lr={current_lr:.6f}")
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), MODELS_SAVED_DIR / "genre_cnn_best.pt")
             print(f"  -> novi najbolji model sacuvan (val_acc={val_acc:.4f})")
+
+        scheduler.step()
 
     torch.save(model.state_dict(), MODELS_SAVED_DIR / "genre_cnn_last.pt")
     print(f"Trening zavrsen. Najbolji val_acc={best_val_acc:.4f} "

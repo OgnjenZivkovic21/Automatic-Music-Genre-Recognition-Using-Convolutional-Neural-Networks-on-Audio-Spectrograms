@@ -1,4 +1,5 @@
 """Trenira CNN na mel-spektrogramima."""
+import time
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -24,6 +25,10 @@ def run():
         sample_rate=cfg["data"]["sample_rate"],
         segment_duration=cfg["data"]["segment_duration"],
         n_mels=cfg["data"]["n_mels"],
+        # DIJAGNOSTICKI TEST 2/3: SAMO SpecAugment (bez dupliranja isecaka),
+        # da se izoluje da li on izaziva kolaps 'blues' klase.
+        augment=True,
+        samples_per_track=1,
     )
     val_ds = GTZANSpectrogramDataset(
         f"{processed_dir}/val_manifest.csv", genres,
@@ -48,6 +53,7 @@ def run():
     val_accs = []
 
     for epoch in range(cfg["train"]["epochs"]):
+        epoch_start = time.time()
         model.train()
         total_loss = 0
         for x, y in train_loader:
@@ -73,10 +79,12 @@ def run():
         train_losses.append(train_loss)
         val_accs.append(val_acc)
         current_lr = optimizer.param_groups[0]["lr"]
+        epoch_seconds = time.time() - epoch_start
         print(f"epoch {epoch+1}/{cfg['train']['epochs']} "
               f"train_loss={train_loss:.4f} "
               f"val_acc={val_acc:.4f} "
-              f"lr={current_lr:.6f}")
+              f"lr={current_lr:.6f} "
+              f"vreme={epoch_seconds:.1f}s")
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc

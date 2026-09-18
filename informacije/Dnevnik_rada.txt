@@ -58,3 +58,53 @@ Ideje za dalje (jos ne uradjeno):
   ZADRZAVAMO scheduler kao deo koda.
 - Grafici (results/cnn_training_curves.png, results/cnn_confusion_matrix.png)
   azurirani sa finalnim rezultatom (scheduler ukljucen).
+
+- Eksperiment: privremeno izbacen zanr "rock" iz config.yaml (9 zanrova umesto 10),
+  da se proveri da li ce tacnost drasticno porasti kad se ukloni najgori zanr.
+  REZULTAT (bez rock-a, sa StepLR): SVM 69% -> 75% (poboljsanje), RandomForest
+  67% -> 67% (bez promene), CNN 72.7% -> 72% (prakticno bez promene).
+  Zakljucak: uklanjanje rock-a NIJE drasticno pomoglo CNN-u - konfuzija se
+  samo preraspodelila na druge parove zanrova (npr. pop je postao nov slabic,
+  F1 pao na 0.50). Rock vracen nazad u config.yaml.
+- Zapoceta faza 1 plana za poboljsanje CNN-a (dogovoreno u drugom chatu, radi se
+  redom, testira posle svakog koraka):
+  1) Data augmentacija u datasets.py: dodata funkcija spec_augment() u features.py
+     (SpecAugment - maskiranje frekvencijske i vremenske trake na spektrogramu,
+     SAMO za trening). GTZANSpectrogramDataset dobio parametre augment i
+     samples_per_track (train_ds sad koristi augment=True, samples_per_track=2 -
+     2 nasumicna isecka po pesmi po epohi, efektivno duplira trening skup).
+     Rock vracen u config.yaml pre ovog testa radi poredjenja na istih 10 zanrova.
+     STATUS: implementirano, JOS NIJE testirano/pokrenuto - ceka se rezultat.
+  2) Test-time averaging u evaluate.py (vise isecaka po test pesmi, usrednjavanje
+     predikcija) - JOS NIJE zapoceto, ide posle koraka 1.
+- Dodato kesiranje mel-spektrograma u datasets.py: mel-spektrogram cele pesme
+  se racuna samo jednom po fajlu (prvi put kad se zatrazi) i cuva u memoriji
+  (GTZANSpectrogramDataset._spec_cache); svaki naredni zahtev za istu pesmu
+  samo isece nasumican deo iz vec izracunatog spektrograma, bez ponovnog
+  citanja/dekodiranja audio fajla i bez ponovnog racunanja FFT-a. Nasumicnost
+  isecka i SpecAugment ostaju nepromenjeni (i dalje se biraju/primenjuju
+  svaki put). Kes vazi samo unutar jednog pokretanja skripte (u memoriji).
+  Dodata i deljena konstanta DEFAULT_HOP_LENGTH u features.py da se secenje
+  u frame-domenu tacno poklapa sa parametrima koriscenim pri racunanju
+  spektrograma. STATUS: implementirano, JOS NIJE testirano/pokrenuto.
+
+18.09.2026.
+-----------
+- Prvi pokusaj faze 1 (SpecAugment + samples_per_track=2 + kesiranje + rock vracen,
+  sve odjednom) dao je LOS rezultat: test accuracy 58%, "blues" klasa POTPUNO
+  kolabirala (0/15 tacno, model NIJEDNOM nije predvideo blues - precision/recall
+  0.00, sklearn UndefinedMetricWarning). Prekrsili smo pravilo "menjaj jedno po
+  jedno" iz plana, pa nije bilo jasno sta je krivo.
+- Dijagnostika: dodato merenje vremena po epohi (time.time()) u train_cnn.py.
+  Izolovan test: SAMO kesiranje (augment=False, samples_per_track=1), da se
+  proveri da li je kes uzrok problema ili je problem u SpecAugment/dupliranju.
+  REZULTAT: kesiranje je POTVRDJENO ISPRAVNO.
+  - Vreme: epoha 1 = 70.4s (prvo racunanje punih spektrograma za 849 pesama),
+    epohe 2-40 = ~9.5s svaka. Ukupno ~7.5 min umesto ranijih ~22 min bez kesa -
+    ubrzanje potvrdjeno konkretnim merenjem, ne samo pretpostavkom.
+  - Tacnost: 66.7% (100/150), blues NIJE kolabirao (9/15 tacno, zdrav rezultat) -
+    razlika prema ranijem StepLR baseline-u (72.7%) je u okviru poznatog "suma"
+    izmedju pokretanja, ne nova greska.
+  ZAKLJUCAK: kesiranje ostaje trajno u kodu. Problem sa blues kolapsom je u
+  SpecAugment-u i/ili samples_per_track=2 - sledeci korak: testirati ih
+  odvojeno da se nadje pravi uzrok.

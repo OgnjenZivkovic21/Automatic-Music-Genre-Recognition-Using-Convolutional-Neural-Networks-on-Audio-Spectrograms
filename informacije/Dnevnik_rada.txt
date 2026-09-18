@@ -108,3 +108,48 @@ Ideje za dalje (jos ne uradjeno):
   ZAKLJUCAK: kesiranje ostaje trajno u kodu. Problem sa blues kolapsom je u
   SpecAugment-u i/ili samples_per_track=2 - sledeci korak: testirati ih
   odvojeno da se nadje pravi uzrok.
+
+18.09.2026 - Dijagnosticki test 2/3: SAMO SpecAugment (augment=True, samples_per_track=1,
+keširanje aktivno). Rezultat: test acc 63%, best val_acc 61.3%. Blues NIJE kolabirao
+(precision 0.62, recall 0.53, f1 0.57) - dakle SpecAugment sam NE izaziva kolaps blues klase.
+Ali: ukupna tacnost pala u odnosu na bazu bez augmentacije (66.7% samo kesiranje / 72.7% sa
+schedulerom), validaciona kriva ostaje jako nazubljena, i rock (5/15) i country (6/15) oslabili.
+Zakljucak: sumnja se sad prebacuje na samples_per_track=2 (dupliranje isecaka) kao mogueg
+uzroka kolapsa - sledeci test (3/3): samo samples_per_track=2, bez SpecAugment-a.
+
+18.09.2026 - Dijagnosticki test 3/3: SAMO samples_per_track=2 (dupliranje isecaka po pesmi,
+bez SpecAugment-a, kesiranje aktivno). Rezultat: test acc 69%, best val_acc 75.3% (NAJBOLJI
+CNN rezultat do sada), makro f1 0.69. Blues NIJE kolabirao (7/15, precision 0.64, recall 0.47).
+
+ZAKLJUCAK IZOLACIONOG TESTIRANJA (sumira testove 1/3, 2/3, 3/3): ni SpecAugment sam ni
+samples_per_track=2 sam ne izazivaju kolaps blues klase, niti kesiranje (vec ranije potvrdjeno
+ispravno). Kolaps koji se desio kad su SVE promene bile ukljucene odjednom (rock vracen +
+SpecAugment + samples_per_track=2 + kesiranje) je verovatno posledica INTERAKCIJE SpecAugment-a
+i samples_per_track=2 zajedno, ne pojedinacnog uzroka. Vredan nalaz za rad - kombinovanje dve
+tehnike augmentacije koje su pojedinacno bezbedne moze izazvati neocekivanu nestabilnost.
+samples_per_track=2 sam je trenutno najbolja konfiguracija pronadjena (69% test / 75.3% val).
+
+18.09.2026 - Dijagnosticki test 4/4 (POTVRDA): SpecAugment + samples_per_track=2 ZAJEDNO.
+Rezultat: test acc 60%, best val_acc 64.7%. Blues OPET KOLABIRAO (precision 1.00, recall 0.07,
+f1 0.12 - samo 1/15 tacno) - skoro identicno prvom neuspesnom pokusaju.
+
+KONACAN ZAKLJUCAK IZOLACIONOG TESTIRANJA: potvrdjeno da SpecAugment i samples_per_track=2
+POJEDINACNO ne stete (test 2/3, 3/3), ali njihova KOMBINACIJA pouzdano izaziva kolaps blues
+klase (test 1 originalni i test 4/4 potvrda - oba puta isti obrazac). Odluka: SpecAugment se
+NE koristi zajedno sa samples_per_track=2. Trenutna najbolja/usvojena konfiguracija:
+samples_per_track=2, augment=False (test acc 69%, best val_acc 75.3%, dnevnik 18.09.2026 ranije).
+Kod vracen na tu konfiguraciju.
+
+18.09.2026 - Korak 2 iz plana (test-time averaging): u evaluate.py dodato usrednjavanje
+predikcija preko 5 ravnomerno rasporedjenih isecaka po test pesmi (nova metoda
+get_eval_crops u datasets.py), umesto stare verzije koja je koristila samo 1 nasumican
+isecak. VAZNA GRESKA usput: prvi pokusaj testiranja je slucajno evaluirao STARI checkpoint
+(iz dijagnostickog testa 4/4 koji je imao kolaps blues klase) jer genre_cnn_best.pt uvek
+prepisuje prethodni - ispravljeno ponovnim treningom sa vazecom konfiguracijom
+(samples_per_track=2, augment=False) pre evaluacije.
+
+REZULTAT (na ispravnom modelu): test tacnost skocila sa 69% na 78% (najbolji CNN rezultat
+do sada!) samo zahvaljujuci test-time averaging-u, bez ikakve izmene u treningu. Blues
+odlican (93% precision/recall), classical/hiphop/jazz/metal skoro savrseni (recall 1.00
+za hiphop i jazz). Preostale slabe tacke: disco (recall 0.33, mesa se sa pop) i rock
+(recall 0.40, rasprseno po vise zanrova) - kandidati za dalje poboljsanje.

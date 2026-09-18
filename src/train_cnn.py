@@ -25,10 +25,12 @@ def run():
         sample_rate=cfg["data"]["sample_rate"],
         segment_duration=cfg["data"]["segment_duration"],
         n_mels=cfg["data"]["n_mels"],
-        # DIJAGNOSTICKI TEST 2/3: SAMO SpecAugment (bez dupliranja isecaka),
-        # da se izoluje da li on izaziva kolaps 'blues' klase.
-        augment=True,
-        samples_per_track=1,
+        # Usvojena konfiguracija nakon izolacionog testiranja (18.09.2026):
+        # samples_per_track=2 sam po sebi daje najbolji rezultat (69% test / 75.3% val).
+        # SpecAugment se NE koristi zajedno sa samples_per_track=2 - ta kombinacija
+        # pouzdano izaziva kolaps 'blues' klase (vidi Dnevnik_rada.txt, testovi 1-4).
+        augment=False,
+        samples_per_track=2,
     )
     val_ds = GTZANSpectrogramDataset(
         f"{processed_dir}/val_manifest.csv", genres,

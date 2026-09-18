@@ -56,12 +56,12 @@ power_to_db pretvara sirove vrednosti energije (koje mogu biti ogromnog raspona)
 def extract_classical_features(y, sr, n_mfcc=20):
     """Vraca fiksni vektor feature-a (mean + std nekoliko deskriptora)
     za klasicni ML baseline (SVM / RandomForest)."""
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
-    chroma = librosa.feature.chroma_stft(y=y, sr=sr)
-    spec_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
-    spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)
-    zcr = librosa.feature.zero_crossing_rate(y)
-    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc) #boja zvuka
+    chroma = librosa.feature.chroma_stft(y=y, sr=sr) #harmonija
+    spec_centroid = librosa.feature.spectral_centroid(y=y, sr=sr) #svetlina
+    spec_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr) #svetlina
+    zcr = librosa.feature.zero_crossing_rate(y) #sum/distorzija
+    tempo, _ = librosa.beat.beat_track(y=y, sr=sr) #brzina
 
     def stats(arr):
         return [np.mean(arr), np.std(arr)]

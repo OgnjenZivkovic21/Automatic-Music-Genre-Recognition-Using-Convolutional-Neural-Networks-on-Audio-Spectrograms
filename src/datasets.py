@@ -54,6 +54,43 @@ class GTZANSpectrogramDataset(Dataset):
         self._spec_cache[path] = full_log_mel
         return full_log_mel
 
+    def get_eval_crops(self, idx, n_crops=5):
+        """Vraca N ravnomerno rasporedjenih isecaka CELE pesme (bez
+        nasumicnosti, bez SpecAugment-a) - koristi se za test-time averaging
+        u evaluate.py: napravi se predikcija za svaki isecak, pa se softmax
+        verovatnoce usrednje umesto da se ceo rezultat oslanja na samo jedan
+        (nasumican) isecak. idx ovde ide 0..len(self.rows)-1 (BEZ mnozenja
+        sa samples_per_track - to je samo za trening)."""
+        row = self.rows[idx]
+        full_log_mel = self._get_full_spectrogram(row["path"])
+
+        frames_per_seg = int(round(
+            self.segment_duration * self.sample_rate / DEFAULT_HOP_LENGTH
+        ))
+        n_frames_total = full_log_mel.shape[1]
+
+        if n_frames_total > frames_per_seg:
+            offsets = np.linspace(0, n_frames_total - frames_per_seg, n_crops).astype(int)
+        else:
+            offsets = [0] * n_crops
+
+        crops = []
+        for f0 in offsets:
+            if n_frames_total > frames_per_seg:
+                log_mel = full_log_mel[:, f0:f0 + frames_per_seg].copy()
+            else:
+                pad_width = frames_per_seg - n_frames_total
+                log_mel = np.pad(
+                    full_log_mel, ((0, 0), (0, pad_width)),
+                    mode="constant", constant_values=full_log_mel.min(),
+                )
+            crops.append(log_mel)
+
+        # (n_crops, 1, n_mels, frames_per_seg)
+        x = torch.tensor(np.stack(crops), dtype=torch.float32).unsqueeze(1)
+        label = self.genre_to_idx[row["genre"]]
+        return x, label
+
     def __getitem__(self, idx):
         row = self.rows[idx % len(self.rows)]
         full_log_mel = self._get_full_spectrogram(row["path"])

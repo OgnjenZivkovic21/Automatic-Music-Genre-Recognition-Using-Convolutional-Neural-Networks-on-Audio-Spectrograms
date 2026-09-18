@@ -1,15 +1,23 @@
-"""Evaluira sacuvani CNN checkpoint na test splitu."""
+"""Evaluira sacuvani CNN checkpoint na test splitu.
+
+Test-time averaging: za svaku test pesmu se uzima N_CROPS = 5 ravnomerno
+rasporedjenih isecaka cele pesme (bez nasumicnosti), za svaki se izracuna
+softmax verovatnoca po zanru, pa se te verovatnoce usrednje - konacna
+predikcija je zanr sa najvecom usrednjenom verovatnocom. Ovo je stabilnije
+od stare verzije koja je pravila predikciju na osnovu samo JEDNOG nasumicnog
+3-sekundnog isecka po pesmi."""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
-from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, confusion_matrix
 
 from config import load_config, MODELS_SAVED_DIR, RESULTS_DIR
 from datasets import GTZANSpectrogramDataset
 from models.cnn import GenreCNN
+
+N_CROPS = 5
 
 
 def run():
@@ -24,7 +32,6 @@ def run():
         segment_duration=cfg["data"]["segment_duration"],
         n_mels=cfg["data"]["n_mels"],
     )
-    test_loader = DataLoader(test_ds, batch_size=cfg["train"]["batch_size"])
 
     model = GenreCNN(n_genres=len(genres), n_mels=cfg["data"]["n_mels"]).to(device)
     model.load_state_dict(torch.load(MODELS_SAVED_DIR / "genre_cnn_best.pt", map_location=device))
@@ -32,12 +39,16 @@ def run():
 
     y_true, y_pred = [], []
     with torch.no_grad():
-        for x, y in test_loader:
+        for idx in range(len(test_ds.rows)):
+            x, label = test_ds.get_eval_crops(idx, n_crops=N_CROPS)
             x = x.to(device)
-            preds = model(x).argmax(dim=1).cpu()
-            y_true.extend(y.tolist())
-            y_pred.extend(preds.tolist())
+            probs = torch.softmax(model(x), dim=1)
+            avg_probs = probs.mean(dim=0)
+            pred = avg_probs.argmax().item()
+            y_true.append(label)
+            y_pred.append(pred)
 
+    print(f"(test-time averaging, {N_CROPS} isecaka po pesmi)")
     print(classification_report(y_true, y_pred, target_names=genres))
     cm = confusion_matrix(y_true, y_pred)
     print(cm)
